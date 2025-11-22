@@ -392,11 +392,11 @@ export default function PreAssessmentDentistaImprovedV3() {
               <Label className="mb-3 block font-medium text-gray-700">Percebe retração da gengiva? <span className="text-red-500">*</span></Label>
               <RadioGroup value={formData.gumRecession} onValueChange={(value: "sim" | "nao") => handleRadioChange("gumRecession", value)} className="flex space-x-6">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="sim" id="recessao_sim" />
+                  <RadioGroupItem value="sim" id="gumrecessao_sim" />
                   <Label htmlFor="recessao_sim">Sim</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="nao" id="recessao_nao" />
+                  <RadioGroupItem value="nao" id="gumrecessao_nao" />
                   <Label htmlFor="recessao_nao">Não</Label>
                 </div>
               </RadioGroup>
