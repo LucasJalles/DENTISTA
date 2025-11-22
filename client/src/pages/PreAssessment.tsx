@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Send, ArrowLeft, ArrowRight, User, Stethoscope, Heart, History, CheckCircle } from "lucide-react";
+import { Send, ArrowLeft, ArrowRight, User, Stethoscope, Heart, History } from "lucide-react";
 import { useLocation } from "wouter";
 
 // --- Tipos de Dados ---
@@ -17,42 +17,39 @@ type FormData = {
   mainComplaint: string;
   painLevel: string;
   painDuration: string;
-  bodyRegion: string[]; // Alterado de toothRegion para bodyRegion
-  additionalSymptoms: string[]; // Alterado de sensitivity para additionalSymptoms
-  movementLimitation: "sim" | "nao" | ""; // Alterado de bleeding para movementLimitation
-  injuryHistory: "sim" | "nao" | ""; // Alterado de gumRecession para injuryHistory
+  toothRegion: string[];
+  sensitivity: string[];
+  bleeding: "sim" | "nao" | "";
+  gumRecession: "sim" | "nao" | "";
   previousTreatments: string;
   medications: string;
-  lifestyleHabits: string[]; // Alterado de habits para lifestyleHabits
+  habits: string[];
   additionalInfo: string;
 };
 
-// --- Opções de Seleção (Contexto Fisioterapia) ---
-const bodyAreas = [
-  { id: "coluna_cervical", label: "Coluna Cervical (Pescoço)" },
-  { id: "coluna_lombar", label: "Coluna Lombar (Costas)" },
-  { id: "ombro", label: "Ombro" },
-  { id: "joelho", label: "Joelhos" },
-  { id: "tornozelo_pe", label: "Tornozelo / Pé" },
-  { id: "quadril", label: "Quadril" },
-  { id: "dor_difusa", label: "Dor difusa / Várias regiões" },
+// --- Opções de Seleção ---
+const toothAreas = [
+  { id: "front_top", label: "Dentes superiores frontais" },
+  { id: "front_bottom", label: "Dentes inferiores frontais" },
+  { id: "molars_top", label: "Molares superiores" },
+  { id: "molars_bottom", label: "Molares inferiores" },
+  { id: "canines", label: "Caninos" },
+  { id: "general", label: "Dor difusa / difícil de localizar" },
 ];
 
-const additionalSymptoms = [
-  "Formigamento ou Dormência",
-  "Rigidez Matinal",
-  "Fraqueza Muscular",
-  "Inchaço (Edema)",
-  "Dor ao Repouso",
-  "Dor ao Movimento",
+const sensitivityTypes = [
+  "Sensibilidade ao gelado",
+  "Sensibilidade ao quente",
+  "Sensibilidade ao doce",
+  "Sensibilidade ao toque/mordida",
 ];
 
-const lifestyleHabits = [
-  "Sedentarismo",
-  "Postura Inadequada no Trabalho",
-  "Prática de Esportes de Alto Impacto",
-  "Estresse Elevado",
-  "Tabagismo",
+const habitTypes = [
+  "Ranger os dentes (Bruxismo)",
+  "Roer unhas",
+  "Morder objetos (tampas, canetas)",
+  "Respiração bucal",
+  "Consumo frequente de bebidas ácidas",
 ];
 
 // --- Funções Auxiliares ---
@@ -77,7 +74,7 @@ const formatPhone = (value: string) => {
 };
 
 // --- Componente Principal ---
-export default function PreAssessmentFisioterapia() {
+export default function PreAssessmentDentistaImprovedV3() {
   const [, setLocation] = useLocation();
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -87,17 +84,18 @@ export default function PreAssessmentFisioterapia() {
     mainComplaint: "",
     painLevel: "5",
     painDuration: "",
-    bodyRegion: [],
-    additionalSymptoms: [],
-    movementLimitation: "",
-    injuryHistory: "",
+    toothRegion: [],
+    sensitivity: [],
+    bleeding: "",
+    gumRecession: "",
     previousTreatments: "",
     medications: "",
-    lifestyleHabits: [],
+    habits: [],
     additionalInfo: "",
   });
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  // NOVO ESTADO: Controla se a validação já foi tentada para a etapa atual
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [currentValidationError, setCurrentValidationError] = useState("");
 
@@ -106,11 +104,13 @@ export default function PreAssessmentFisioterapia() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target as HTMLInputElement;
+    // Limpa o erro ao digitar, mas só se a validação já foi tentada
     if (validationAttempted) {
         setCurrentValidationError("");
     }
 
     if (name === "phone") {
+      // Aplica a formatação do telefone
       setFormData((prev) => ({ ...prev, [name]: formatPhone(value) }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -118,7 +118,7 @@ export default function PreAssessmentFisioterapia() {
   };
 
   const handleToggle = (
-    field: "bodyRegion" | "additionalSymptoms" | "lifestyleHabits",
+    field: "toothRegion" | "sensitivity" | "habits",
     value: string
   ) => {
     setFormData((prev) => {
@@ -131,7 +131,7 @@ export default function PreAssessmentFisioterapia() {
     });
   };
 
-  const handleRadioChange = (field: "movementLimitation" | "injuryHistory", value: "sim" | "nao") => {
+  const handleRadioChange = (field: "bleeding" | "gumRecession", value: "sim" | "nao") => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -144,6 +144,7 @@ export default function PreAssessmentFisioterapia() {
           setCurrentValidationError("O campo Nome é obrigatório.");
           return false;
         }
+        // Validação básica de telefone (10 ou 11 dígitos, ignorando formatação)
         if (formData.phone.replace(/[^\d]/g, "").length < 10) {
           setCurrentValidationError("O campo WhatsApp é obrigatório e deve ter pelo menos 10 dígitos.");
           return false;
@@ -155,13 +156,13 @@ export default function PreAssessmentFisioterapia() {
           return false;
         }
         return true;
-      case 3: // Saúde Bucal -> Funcionalidade: Limitação e Histórico obrigatórios
-        if (!formData.movementLimitation) {
-          setCurrentValidationError("Por favor, informe sobre Limitação de Movimento.");
+      case 3: // Saúde Bucal: Sangramento e Recessão obrigatórios
+        if (!formData.bleeding) {
+          setCurrentValidationError("Por favor, informe sobre Sangramento ao escovar.");
           return false;
         }
-        if (!formData.injuryHistory) {
-          setCurrentValidationError("Por favor, informe sobre Histórico de Lesão.");
+        if (!formData.gumRecession) {
+          setCurrentValidationError("Por favor, informe sobre Recessão da gengiva.");
           return false;
         }
         return true;
@@ -173,34 +174,34 @@ export default function PreAssessmentFisioterapia() {
   };
 
   const handleNext = () => {
-    setValidationAttempted(true);
+    setValidationAttempted(true); // Marca que a validação foi tentada
     if (validateStep(step)) {
       setStep((prev) => prev + 1);
-      setValidationAttempted(false);
+      setValidationAttempted(false); // Reseta para a próxima etapa
       setCurrentValidationError("");
     }
   };
 
   const handleBack = () => {
     setStep((prev) => prev - 1);
-    setValidationAttempted(false);
+    setValidationAttempted(false); // Reseta ao voltar
     setCurrentValidationError("");
   };
 
   // --- Submissão (WhatsApp) ---
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationAttempted(true);
+    setValidationAttempted(true); // Marca que a validação foi tentada
 
-    if (!validateStep(step)) return;
+    if (!validateStep(step)) return; // Garante que a última etapa também foi validada
 
     // Prepara o texto para o WhatsApp
-    const bodyText = formData.bodyRegion.length > 0 ? formData.bodyRegion.map(id => bodyAreas.find(t => t.id === id)?.label || id).join(", ") : "Não informado";
-    const symptomsText = formData.additionalSymptoms.length > 0 ? formData.additionalSymptoms.join(", ") : "Nenhum";
-    const habitsText = formData.lifestyleHabits.length > 0 ? formData.lifestyleHabits.join(", ") : "Nenhum";
+    const toothText = formData.toothRegion.length > 0 ? formData.toothRegion.map(id => toothAreas.find(t => t.id === id)?.label || id).join(", ") : "Não informado";
+    const sensitivityText = formData.sensitivity.length > 0 ? formData.sensitivity.join(", ") : "Nenhuma";
+    const habitText = formData.habits.length > 0 ? formData.habits.join(", ") : "Nenhum";
 
     const message = encodeURIComponent(
-      `*PRÉ-AVALIAÇÃO FISIOTERAPIA (Fabiana Rodrigues)*\n\n` +
+      `*PRÉ-AVALIAÇÃO ODONTOLÓGICA (Formulário Aprimorado)*\n\n` +
       `*1. Dados Pessoais:*\n` +
       `Nome: ${formData.name}\n` +
       `Email: ${formData.email || "Não informado"}\n` +
@@ -208,16 +209,16 @@ export default function PreAssessmentFisioterapia() {
       `Idade: ${formData.age || "Não informado"}\n\n` +
       `*2. Sintomas e Dor:*\n` +
       `Queixa Principal: ${formData.mainComplaint}\n` +
-      `Região afetada: ${bodyText}\n` +
+      `Região afetada: ${toothText}\n` +
       `Intensidade da dor (0-10): ${formData.painLevel}\n` +
       `Duração da dor: ${formData.painDuration || "Não informado"}\n\n` +
-      `*3. Funcionalidade e Histórico:*\n` +
-      `Sintomas Adicionais: ${symptomsText}\n` +
-      `Limitação de Movimento: ${formData.movementLimitation === "sim" ? "Sim" : "Não"}\n` +
-      `Histórico de Lesão/Cirurgia: ${formData.injuryHistory === "sim" ? "Sim" : "Não"}\n\n` +
-      `*4. Contexto e Hábitos:*\n` +
-      `Hábitos de Vida: ${habitsText}\n` +
-      `Tratamentos anteriores (Fisio/Médico): ${formData.previousTreatments || "Nenhum informado"}\n` +
+      `*3. Saúde Bucal:*\n` +
+      `Sensibilidades: ${sensitivityText}\n` +
+      `Sangramento ao escovar: ${formData.bleeding === "sim" ? "Sim" : "Não"}\n` +
+      `Recessão gengival: ${formData.gumRecession === "sim" ? "Sim" : "Não"}\n\n` +
+      `*4. Histórico e Hábitos:*\n` +
+      `Hábitos: ${habitText}\n` +
+      `Tratamentos anteriores: ${formData.previousTreatments || "Nenhum informado"}\n` +
       `Medicações: ${formData.medications || "Nenhuma"}\n` +
       `Informações adicionais: ${formData.additionalInfo || "Nenhuma"}`
     );
@@ -237,7 +238,7 @@ export default function PreAssessmentFisioterapia() {
     const steps = [
       { id: 1, title: "Seus Dados", icon: User },
       { id: 2, title: "Sintomas", icon: Stethoscope },
-      { id: 3, title: "Funcionalidade", icon: CheckCircle }, // Ícone alterado
+      { id: 3, title: "Saúde Bucal", icon: Heart },
       { id: 4, title: "Histórico", icon: History },
     ];
 
@@ -246,6 +247,7 @@ export default function PreAssessmentFisioterapia() {
         {steps.map((s) => {
           const isActive = s.id === currentStep;
           const isCompleted = s.id < currentStep;
+          const color = isCompleted ? "text-green-500" : isActive ? "text-blue-600" : "text-gray-400";
           const ringColor = isCompleted ? "ring-green-500" : isActive ? "ring-blue-600" : "ring-gray-300";
           const bgColor = isCompleted ? "bg-green-500" : isActive ? "bg-blue-600" : "bg-white";
           const textColor = isActive ? "font-semibold text-blue-600" : "text-gray-600";
@@ -275,6 +277,7 @@ export default function PreAssessmentFisioterapia() {
 
   // --- Renderização de Etapas ---
   const renderStep = () => {
+    // A validação só é exibida se validationAttempted for true
     const error = validationAttempted ? currentValidationError : "";
 
     switch (step) {
@@ -321,15 +324,15 @@ export default function PreAssessmentFisioterapia() {
 
             <div className="space-y-1">
               <Label htmlFor="mainComplaint">Descreva seu principal incômodo <span className="text-red-500">*</span></Label>
-              <Textarea id="mainComplaint" name="mainComplaint" rows={3} value={formData.mainComplaint} onChange={handleInputChange} required aria-required="true" placeholder="Ex: Dor no joelho ao subir escadas, dor no ombro ao levantar o braço, etc." />
+              <Textarea id="mainComplaint" name="mainComplaint" rows={3} value={formData.mainComplaint} onChange={handleInputChange} required aria-required="true" placeholder="Ex: Dor de dente intensa no lado direito, sensibilidade ao mastigar, etc." />
             </div>
 
             <div>
               <Label className="mb-3 block font-medium text-gray-700">Região do Incômodo (Selecione uma ou mais):</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {bodyAreas.map((t) => (
+                {toothAreas.map((t) => (
                   <div key={t.id} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={t.id} checked={formData.bodyRegion.includes(t.id)} onCheckedChange={() => handleToggle("bodyRegion", t.id)} />
+                    <Checkbox id={t.id} checked={formData.toothRegion.includes(t.id)} onCheckedChange={() => handleToggle("toothRegion", t.id)} />
                     <Label htmlFor={t.id} className="cursor-pointer">{t.label}</Label>
                   </div>
                 ))}
@@ -356,15 +359,15 @@ export default function PreAssessmentFisioterapia() {
       case 3:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">3. Funcionalidade e Histórico</h2>
-            <p className="text-gray-600">Detalhes sobre sua mobilidade e histórico de lesões.</p>
+            <h2 className="text-2xl font-bold text-gray-800">3. Saúde Bucal</h2>
+            <p className="text-gray-600">Detalhes sobre a saúde da sua gengiva e sensibilidade.</p>
 
             <div>
-              <Label className="mb-3 block font-medium text-gray-700">Sintomas Adicionais (Selecione um ou mais):</Label>
+              <Label className="mb-3 block font-medium text-gray-700">Sensibilidade (Selecione uma ou mais):</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {additionalSymptoms.map((s) => (
+                {sensitivityTypes.map((s) => (
                   <div key={s} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={s} checked={formData.additionalSymptoms.includes(s)} onCheckedChange={() => handleToggle("additionalSymptoms", s)} />
+                    <Checkbox id={s} checked={formData.sensitivity.includes(s)} onCheckedChange={() => handleToggle("sensitivity", s)} />
                     <Label htmlFor={s} className="cursor-pointer">{s}</Label>
                   </div>
                 ))}
@@ -372,29 +375,29 @@ export default function PreAssessmentFisioterapia() {
             </div>
 
             <div className="pt-4 p-4 bg-white rounded-lg border border-gray-200">
-              <Label className="mb-3 block font-medium text-gray-700">Sente limitação ou dificuldade ao realizar movimentos? <span className="text-red-500">*</span></Label>
-              <RadioGroup value={formData.movementLimitation} onValueChange={(value: "sim" | "nao") => handleRadioChange("movementLimitation", value)} className="flex space-x-6">
+              <Label className="mb-3 block font-medium text-gray-700">Sangramento ao escovar? <span className="text-red-500">*</span></Label>
+              <RadioGroup value={formData.bleeding} onValueChange={(value: "sim" | "nao") => handleRadioChange("bleeding", value)} className="flex space-x-6">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="sim" id="movement_sim" />
-                  <Label htmlFor="movement_sim">Sim</Label>
+                  <RadioGroupItem value="sim" id="bleeding_sim" />
+                  <Label htmlFor="bleeding_sim">Sim</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="nao" id="movement_nao" />
-                  <Label htmlFor="movement_nao">Não</Label>
+                  <RadioGroupItem value="nao" id="bleeding_nao" />
+                  <Label htmlFor="bleeding_nao">Não</Label>
                 </div>
               </RadioGroup>
             </div>
 
             <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <Label className="mb-3 block font-medium text-gray-700">Já teve lesões ou cirurgias na região afetada? <span className="text-red-500">*</span></Label>
-              <RadioGroup value={formData.injuryHistory} onValueChange={(value: "sim" | "nao") => handleRadioChange("injuryHistory", value)} className="flex space-x-6">
+              <Label className="mb-3 block font-medium text-gray-700">Percebe retração da gengiva? <span className="text-red-500">*</span></Label>
+              <RadioGroup value={formData.gumRecession} onValueChange={(value: "sim" | "nao") => handleRadioChange("gumRecession", value)} className="flex space-x-6">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="sim" id="injury_sim" />
-                  <Label htmlFor="injury_sim">Sim</Label>
+                  <RadioGroupItem value="sim" id="recessao_sim" />
+                  <Label htmlFor="recessao_sim">Sim</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="nao" id="injury_nao" />
-                  <Label htmlFor="injury_nao">Não</Label>
+                  <RadioGroupItem value="nao" id="recessao_nao" />
+                  <Label htmlFor="recessao_nao">Não</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -409,15 +412,15 @@ export default function PreAssessmentFisioterapia() {
       case 4:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">4. Contexto e Hábitos</h2>
-            <p className="text-gray-600">Informações importantes sobre seu histórico e estilo de vida.</p>
+            <h2 className="text-2xl font-bold text-gray-800">4. Histórico e Hábitos</h2>
+            <p className="text-gray-600">Informações importantes sobre seu histórico médico e hábitos.</p>
 
             <div className="mb-4">
-              <Label className="mb-3 block font-medium text-gray-700">Hábitos de Vida que podem influenciar sua saúde:</Label>
+              <Label className="mb-3 block font-medium text-gray-700">Hábitos que podem influenciar a saúde bucal:</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {lifestyleHabits.map((h) => (
+                {habitTypes.map((h) => (
                   <div key={h} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={h} checked={formData.lifestyleHabits.includes(h)} onCheckedChange={() => handleToggle("lifestyleHabits", h)} />
+                    <Checkbox id={h} checked={formData.habits.includes(h)} onCheckedChange={() => handleToggle("habits", h)} />
                     <Label htmlFor={h} className="cursor-pointer">{h}</Label>
                   </div>
                 ))}
@@ -425,8 +428,8 @@ export default function PreAssessmentFisioterapia() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="previousTreatments">Já realizou algum tratamento de Fisioterapia ou Médico recente?</Label>
-              <Textarea id="previousTreatments" name="previousTreatments" rows={3} value={formData.previousTreatments} onChange={handleInputChange} placeholder="Ex: sessões de acupuntura, cirurgia de menisco, uso de colete... (Opcional)" />
+              <Label htmlFor="previousTreatments">Já realizou algum tratamento odontológico recente?</Label>
+              <Textarea id="previousTreatments" name="previousTreatments" rows={3} value={formData.previousTreatments} onChange={handleInputChange} placeholder="Ex: canal, restauração, clareamento… (Opcional)" />
             </div>
 
             <div className="space-y-1">
@@ -435,7 +438,7 @@ export default function PreAssessmentFisioterapia() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="additionalInfo">Deseja informar mais alguma coisa à Fisioterapeuta?</Label>
+              <Label htmlFor="additionalInfo">Deseja informar mais alguma coisa ao dentista?</Label>
               <Textarea id="additionalInfo" name="additionalInfo" rows={4} value={formData.additionalInfo} onChange={handleInputChange} placeholder="Informações extras (Opcional)" />
             </div>
             
@@ -464,8 +467,8 @@ export default function PreAssessmentFisioterapia() {
           </button>
 
           <div className="mb-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Pré-Avaliação de Fisioterapia</h1>
-            <p className="text-gray-600">Preencha para que a Fisioterapeuta Fabiana Rodrigues possa entender sua queixa e direcionar o atendimento.</p>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Pré-Avaliação Odontológica</h1>
+            <p className="text-gray-600">Preencha para que o dentista possa entender sua queixa e direcionar o atendimento.</p>
           </div>
         </div>
 
@@ -475,7 +478,7 @@ export default function PreAssessmentFisioterapia() {
 
           {submitted && (
             <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-lg shadow-md" role="alert" aria-live="assertive">
-              Dados enviados via WhatsApp para Fabiana Rodrigues! Ela entrará em contato.
+              Dados enviados via WhatsApp! Entraremos em contato.
             </div>
           )}
 
