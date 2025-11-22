@@ -18,6 +18,7 @@ type FormData = {
   painLevel: string;
   painDuration: string;
   toothRegion: string[];
+  medicalHistory: string[];
   sensitivity: string[];
   bleeding: "sim" | "nao" | "";
   gumRecession: "sim" | "nao" | "";
@@ -29,11 +30,10 @@ type FormData = {
 
 // --- Opções de Seleção ---
 const toothAreas = [
-  { id: "front_top", label: "Dentes superiores frontais" },
-  { id: "front_bottom", label: "Dentes inferiores frontais" },
-  { id: "molars_top", label: "Molares superiores" },
-  { id: "molars_bottom", label: "Molares inferiores" },
-  { id: "canines", label: "Caninos" },
+  { id: "anterior_top", label: "Dente Superior Anterior (Frente)" },
+  { id: "posterior_top", label: "Dente Superior Posterior (Trás)" },
+  { id: "anterior_bottom", label: "Dente Inferior Anterior (Frente)" },
+  { id: "posterior_bottom", label: "Dente Inferior Posterior (Trás)" },
   { id: "general", label: "Dor difusa / difícil de localizar" },
 ];
 
@@ -42,6 +42,8 @@ const sensitivityTypes = [
   "Sensibilidade ao quente",
   "Sensibilidade ao doce",
   "Sensibilidade ao toque/mordida",
+  "Edema/Inchaço",
+  "Secreção purulenta/Fístula",
 ];
 
 const habitTypes = [
@@ -91,6 +93,7 @@ export default function PreAssessmentDentistaImprovedV3() {
     previousTreatments: "",
     medications: "",
     habits: [],
+    medicalHistory: [], // Novo campo
     additionalInfo: "",
   });
   const [step, setStep] = useState(1);
@@ -118,7 +121,7 @@ export default function PreAssessmentDentistaImprovedV3() {
   };
 
   const handleToggle = (
-    field: "toothRegion" | "sensitivity" | "habits",
+    field: "toothRegion" | "sensitivity" | "habits" | "medicalHistory",
     value: string
   ) => {
     setFormData((prev) => {
@@ -182,6 +185,7 @@ export default function PreAssessmentDentistaImprovedV3() {
     const toothText = formData.toothRegion.length > 0 ? formData.toothRegion.map(id => toothAreas.find(t => t.id === id)?.label || id).join(", ") : "Não informado";
     const sensitivityText = formData.sensitivity.length > 0 ? formData.sensitivity.join(", ") : "Nenhuma";
     const habitText = formData.habits.length > 0 ? formData.habits.join(", ") : "Nenhum";
+    const medicalHistoryText = formData.medicalHistory.length > 0 ? formData.medicalHistory.join(", ") : "Nenhuma";
 
     const message = encodeURIComponent(
       `*PRÉ-AVALIAÇÃO ODONTOLÓGICA (Formulário Aprimorado)*\n\n` +
@@ -196,10 +200,11 @@ export default function PreAssessmentDentistaImprovedV3() {
       `Intensidade da dor (0-10): ${formData.painLevel}\n` +
       `Duração da dor: ${formData.painDuration || "Não informado"}\n\n` +
       `*3. Saúde Bucal:*\n` +
-      `Sensibilidades: ${sensitivityText}\n` +
+      `Sensibilidades/Sintomas Adicionais: ${sensitivityText}\n` +
       `Sangramento ao escovar: ${formData.bleeding === "sim" ? "Sim" : "Não"}\n` +
       `Recessão gengival: ${formData.gumRecession === "sim" ? "Sim" : "Não"}\n\n` +
       `*4. Histórico e Hábitos:*\n` +
+      `Histórico Médico: ${medicalHistoryText}\n` +
       `Hábitos: ${habitText}\n` +
       `Tratamentos anteriores: ${formData.previousTreatments || "Nenhum informado"}\n` +
       `Medicações: ${formData.medications || "Nenhuma"}\n` +
@@ -365,7 +370,7 @@ export default function PreAssessmentDentistaImprovedV3() {
             <p className="text-gray-600">Detalhes sobre a saúde da sua gengiva e sensibilidade.</p>
 
             <div>
-              <Label className="mb-3 block font-medium text-gray-700">Sensibilidade (Selecione uma ou mais):</Label>
+              <Label className="mb-3 block font-medium text-gray-700">Sensibilidade e Sintomas Adicionais (Selecione uma ou mais):</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sensitivityTypes.map((s) => (
                   <div key={s} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
@@ -417,40 +422,52 @@ export default function PreAssessmentDentistaImprovedV3() {
             <h2 className="text-2xl font-bold text-gray-800">4. Histórico e Hábitos</h2>
             <p className="text-gray-600">Informações importantes sobre seu histórico médico e hábitos.</p>
 
-            <div className="mb-4">
-              <Label className="mb-3 block font-medium text-gray-700">Hábitos que podem influenciar a saúde bucal:</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {habitTypes.map((h) => (
-                  <div key={h} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={h} checked={formData.habits.includes(h)} onCheckedChange={() => handleToggle("habits", h)} />
-                    <Label htmlFor={h} className="cursor-pointer">{h}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="previousTreatments">Já realizou algum tratamento odontológico recente?</Label>
-              <Textarea id="previousTreatments" name="previousTreatments" rows={3} value={formData.previousTreatments} onChange={handleInputChange} placeholder="Ex: canal, restauração, clareamento… (Opcional)" />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="medications">Toma alguma medicação atualmente?</Label>
-              <Textarea id="medications" name="medications" rows={3} value={formData.medications} onChange={handleInputChange} placeholder="Liste as medicações (Opcional)" />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="additionalInfo">Deseja informar mais alguma coisa ao dentista?</Label>
-              <Textarea id="additionalInfo" name="additionalInfo" rows={4} value={formData.additionalInfo} onChange={handleInputChange} placeholder="Informações extras (Opcional)" />
-            </div>
-            
-            {error && step === 4 && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg" role="alert" aria-live="assertive">
-                {error}
-              </div>
-            )}
-          </div>
-        );
+              <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+	              <Label className="mb-3 block font-medium text-gray-700">Histórico Médico (Selecione o que se aplica):</Label>
+	              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+	                {["Diabetes", "Hipertensão", "Problemas Cardíacos", "Alergias a Medicamentos", "Outras Condições"].map((h) => (
+	                  <div key={h} className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
+	                    <Checkbox id={h} checked={formData.medicalHistory.includes(h)} onCheckedChange={() => handleToggle("medicalHistory", h)} />
+	                    <Label htmlFor={h} className="cursor-pointer">{h}</Label>
+	                  </div>
+	                ))}
+	              </div>
+	            </div>
+	
+	            <div className="mb-4">
+	              <Label className="mb-3 block font-medium text-gray-700">Hábitos que podem influenciar a saúde bucal:</Label>
+	              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+	                {habitTypes.map((h) => (
+	                  <div key={h} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
+	                    <Checkbox id={h} checked={formData.habits.includes(h)} onCheckedChange={() => handleToggle("habits", h)} />
+	                    <Label htmlFor={h} className="cursor-pointer">{h}</Label>
+	                  </div>
+	                ))}
+	              </div>
+	            </div>
+	
+	            <div className="space-y-1">
+	              <Label htmlFor="previousTreatments">Já realizou algum tratamento odontológico recente?</Label>
+	              <Textarea id="previousTreatments" name="previousTreatments" rows={3} value={formData.previousTreatments} onChange={handleInputChange} placeholder="Ex: canal, restauração, clareamento… (Opcional)" />
+	            </div>
+	
+	            <div className="space-y-1">
+	              <Label htmlFor="medications">Toma alguma medicação atualmente?</Label>
+	              <Textarea id="medications" name="medications" rows={3} value={formData.medications} onChange={handleInputChange} placeholder="Liste as medicações (Opcional)" />
+	            </div>
+	
+	            <div className="space-y-1">
+	              <Label htmlFor="additionalInfo">Deseja informar mais alguma coisa ao dentista?</Label>
+	              <Textarea id="additionalInfo" name="additionalInfo" rows={4} value={formData.additionalInfo} onChange={handleInputChange} placeholder="Informações extras (Opcional)" />
+	            </div>
+	            
+	            {error && step === 4 && (
+	              <div className="p-3 bg-red-100 text-red-700 rounded-lg" role="alert" aria-live="assertive">
+	                {error}
+	              </div>
+	            )}
+	          </div>
+	        );
       default:
         return null;
     }
