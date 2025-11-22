@@ -53,8 +53,6 @@ const habitTypes = [
 ];
 
 // --- Funções Auxiliares ---
-
-// Função para formatar o telefone (melhora a UX)
 const formatPhone = (value: string) => {
   if (!value) return value;
   const phoneNumber = value.replace(/[^\d]/g, "");
@@ -63,14 +61,8 @@ const formatPhone = (value: string) => {
   if (length <= 2) return `(${phoneNumber}`;
   if (length <= 7) return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2)}`;
   if (length <= 11)
-    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(
-      2,
-      7
-    )}-${phoneNumber.slice(7, 11)}`;
-  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(
-    2,
-    7
-  )}-${phoneNumber.slice(7, 11)}`;
+    return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
+  return `(${phoneNumber.slice(0, 2)}) ${phoneNumber.slice(2, 7)}-${phoneNumber.slice(7, 11)}`;
 };
 
 // --- Componente Principal ---
@@ -95,7 +87,6 @@ export default function PreAssessmentDentistaImprovedV3() {
   });
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
-  // NOVO ESTADO: Controla se a validação já foi tentada para a etapa atual
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [currentValidationError, setCurrentValidationError] = useState("");
 
@@ -104,13 +95,9 @@ export default function PreAssessmentDentistaImprovedV3() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target as HTMLInputElement;
-    // Limpa o erro ao digitar, mas só se a validação já foi tentada
-    if (validationAttempted) {
-        setCurrentValidationError("");
-    }
+    if (validationAttempted) setCurrentValidationError("");
 
     if (name === "phone") {
-      // Aplica a formatação do telefone
       setFormData((prev) => ({ ...prev, [name]: formatPhone(value) }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -124,10 +111,7 @@ export default function PreAssessmentDentistaImprovedV3() {
     setFormData((prev) => {
       const list = prev[field];
       const exists = list.includes(value);
-      return {
-        ...prev,
-        [field]: exists ? list.filter((v) => v !== value) : [...list, value],
-      } as FormData;
+      return { ...prev, [field]: exists ? list.filter((v) => v !== value) : [...list, value] };
     });
   };
 
@@ -139,34 +123,33 @@ export default function PreAssessmentDentistaImprovedV3() {
   const validateStep = (currentStep: number): boolean => {
     setCurrentValidationError("");
     switch (currentStep) {
-      case 1: // Dados Pessoais: Nome e WhatsApp obrigatórios
+      case 1:
         if (!formData.name.trim()) {
           setCurrentValidationError("O campo Nome é obrigatório.");
           return false;
         }
-        // Validação básica de telefone (10 ou 11 dígitos, ignorando formatação)
         if (formData.phone.replace(/[^\d]/g, "").length < 10) {
-          setCurrentValidationError("O campo WhatsApp é obrigatório e deve ter pelo menos 10 dígitos.");
+          setCurrentValidationError("O WhatsApp deve ter pelo menos 10 dígitos.");
           return false;
         }
         return true;
-      case 2: // Sintomas e Dor: Queixa Principal obrigatória
+      case 2:
         if (!formData.mainComplaint.trim()) {
           setCurrentValidationError("O campo Queixa Principal é obrigatório.");
           return false;
         }
         return true;
-      case 3: // Saúde Bucal: Sangramento e Recessão obrigatórios
+      case 3:
         if (!formData.bleeding) {
-          setCurrentValidationError("Por favor, informe sobre Sangramento ao escovar.");
+          setCurrentValidationError("Informe se há sangramento ao escovar.");
           return false;
         }
         if (!formData.gumRecession) {
-          setCurrentValidationError("Por favor, informe sobre Recessão da gengiva.");
+          setCurrentValidationError("Informe se há retração gengival.");
           return false;
         }
         return true;
-      case 4: // Histórico e Hábitos: Não há campos obrigatórios nesta etapa
+      case 4:
         return true;
       default:
         return false;
@@ -174,56 +157,60 @@ export default function PreAssessmentDentistaImprovedV3() {
   };
 
   const handleNext = () => {
-    setValidationAttempted(true); // Marca que a validação foi tentada
+    setValidationAttempted(true);
     if (validateStep(step)) {
       setStep((prev) => prev + 1);
-      setValidationAttempted(false); // Reseta para a próxima etapa
+      setValidationAttempted(false);
       setCurrentValidationError("");
     }
   };
 
   const handleBack = () => {
     setStep((prev) => prev - 1);
-    setValidationAttempted(false); // Reseta ao voltar
-    setCurrentValidationError("");
+    setValidationAttempted(false);
   };
 
-  // --- Submissão (WhatsApp) ---
+  // --- Submissão ---
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationAttempted(true); // Marca que a validação foi tentada
+    setValidationAttempted(true);
 
-    if (!validateStep(step)) return; // Garante que a última etapa também foi validada
+    if (!validateStep(step)) return;
 
-    // Prepara o texto para o WhatsApp
-    const toothText = formData.toothRegion.length > 0 ? formData.toothRegion.map(id => toothAreas.find(t => t.id === id)?.label || id).join(", ") : "Não informado";
-    const sensitivityText = formData.sensitivity.length > 0 ? formData.sensitivity.join(", ") : "Nenhuma";
+    const toothText =
+      formData.toothRegion.length > 0
+        ? formData.toothRegion.map((id) => toothAreas.find((t) => t.id === id)?.label).join(", ")
+        : "Não informado";
+
+    const sensitivityText =
+      formData.sensitivity.length > 0 ? formData.sensitivity.join(", ") : "Nenhuma";
+
     const habitText = formData.habits.length > 0 ? formData.habits.join(", ") : "Nenhum";
 
     const message = encodeURIComponent(
-      `*PRÉ-AVALIAÇÃO ODONTOLÓGICA (Formulário Aprimorado)*\n\n` +
-      `*1. Dados Pessoais:*\n` +
-      `Nome: ${formData.name}\n` +
-      `Email: ${formData.email || "Não informado"}\n` +
-      `Telefone: ${formData.phone}\n` +
-      `Idade: ${formData.age || "Não informado"}\n\n` +
-      `*2. Sintomas e Dor:*\n` +
-      `Queixa Principal: ${formData.mainComplaint}\n` +
-      `Região afetada: ${toothText}\n` +
-      `Intensidade da dor (0-10): ${formData.painLevel}\n` +
-      `Duração da dor: ${formData.painDuration || "Não informado"}\n\n` +
-      `*3. Saúde Bucal:*\n` +
-      `Sensibilidades: ${sensitivityText}\n` +
-      `Sangramento ao escovar: ${formData.bleeding === "sim" ? "Sim" : "Não"}\n` +
-      `Recessão gengival: ${formData.gumRecession === "sim" ? "Sim" : "Não"}\n\n` +
-      `*4. Histórico e Hábitos:*\n` +
-      `Hábitos: ${habitText}\n` +
-      `Tratamentos anteriores: ${formData.previousTreatments || "Nenhum informado"}\n` +
-      `Medicações: ${formData.medications || "Nenhuma"}\n` +
-      `Informações adicionais: ${formData.additionalInfo || "Nenhuma"}`
+      `*PRÉ-AVALIAÇÃO ODONTOLÓGICA*\n\n` +
+        `*1. Dados Pessoais:*\n` +
+        `Nome: ${formData.name}\n` +
+        `Email: ${formData.email || "Não informado"}\n` +
+        `Telefone: ${formData.phone}\n` +
+        `Idade: ${formData.age || "Não informado"}\n\n` +
+        `*2. Sintomas:*\n` +
+        `Queixa Principal: ${formData.mainComplaint}\n` +
+        `Região: ${toothText}\n` +
+        `Dor: ${formData.painLevel}\n` +
+        `Duração: ${formData.painDuration || "Não informado"}\n\n` +
+        `*3. Saúde Bucal:*\n` +
+        `Sensibilidade: ${sensitivityText}\n` +
+        `Sangramento: ${formData.bleeding}\n` +
+        `Recessão: ${formData.gumRecession}\n\n` +
+        `*4. Histórico:*\n` +
+        `Hábitos: ${habitText}\n` +
+        `Tratamentos: ${formData.previousTreatments || "Nenhum"}\n` +
+        `Medicações: ${formData.medications || "Nenhuma"}\n` +
+        `Extras: ${formData.additionalInfo || "Nenhuma"}`
     );
 
-    const whatsappNumber = "5522992751826"; 
+    const whatsappNumber = "5522992751826";
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
 
     setSubmitted(true);
@@ -233,276 +220,270 @@ export default function PreAssessmentDentistaImprovedV3() {
     }, 3000);
   };
 
-  // --- Componente de Indicador de Etapa ---
-  const StepIndicator = ({ currentStep }: { currentStep: number }) => {
-    const steps = [
-      { id: 1, title: "Seus Dados", icon: User },
-      { id: 2, title: "Sintomas", icon: Stethoscope },
-      { id: 3, title: "Saúde Bucal", icon: Heart },
-      { id: 4, title: "Histórico", icon: History },
-    ];
-
-    return (
-      <div className="flex justify-between items-center mb-10 p-4 bg-white rounded-xl shadow-md">
-        {steps.map((s) => {
-          const isActive = s.id === currentStep;
-          const isCompleted = s.id < currentStep;
-          const color = isCompleted ? "text-green-500" : isActive ? "text-blue-600" : "text-gray-400";
-          const ringColor = isCompleted ? "ring-green-500" : isActive ? "ring-blue-600" : "ring-gray-300";
-          const bgColor = isCompleted ? "bg-green-500" : isActive ? "bg-blue-600" : "bg-white";
-          const textColor = isActive ? "font-semibold text-blue-600" : "text-gray-600";
-
-          return (
-            <div key={s.id} className="flex flex-col items-center flex-1 relative">
-              {/* Linha de Conexão (apenas para etapas intermediárias) */}
-              {s.id > 1 && (
-                <div className={`absolute top-4 left-0 w-1/2 h-0.5 ${isCompleted ? "bg-green-500" : "bg-gray-300"} -translate-x-full`}></div>
-              )}
-              
-              {/* Círculo e Ícone */}
-              <div className={`w-10 h-10 flex items-center justify-center rounded-full ring-2 ${ringColor} ${bgColor} transition-all duration-300 z-10`}>
-                <s.icon className={`w-5 h-5 ${isCompleted ? "text-white" : isActive ? "text-white" : "text-gray-400"}`} />
-              </div>
-
-              {/* Título */}
-              <span className={`mt-2 text-xs md:text-sm text-center ${textColor} transition-colors duration-300 hidden sm:block`}>
-                {s.title}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   // --- Renderização de Etapas ---
   const renderStep = () => {
-    // A validação só é exibida se validationAttempted for true
     const error = validationAttempted ? currentValidationError : "";
 
     switch (step) {
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">1. Seus Dados</h2>
-            <p className="text-gray-600">Precisamos de suas informações de contato para dar seguimento à avaliação.</p>
-            
+            <h2 className="text-2xl font-bold">1. Seus Dados</h2>
+
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <Label htmlFor="name">Nome Completo <span className="text-red-500">*</span></Label>
-                <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required aria-required="true" />
+              <div>
+                <Label htmlFor="name">Nome *</Label>
+                <Input id="name" name="name" value={formData.name} onChange={handleInputChange} />
               </div>
-              <div className="space-y-1">
+              <div>
                 <Label htmlFor="age">Idade</Label>
-                <Input id="age" type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="Opcional" />
+                <Input id="age" name="age" value={formData.age} onChange={handleInputChange} />
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-1">
+              <div>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="Opcional" />
+                <Input id="email" name="email" value={formData.email} onChange={handleInputChange} />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="phone">WhatsApp <span className="text-red-500">*</span></Label>
-                <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required aria-required="true" placeholder="(99) 99999-9999" />
+              <div>
+                <Label htmlFor="phone">WhatsApp *</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(99) 99999-9999"
+                />
               </div>
             </div>
-            
-            {error && step === 1 && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg" role="alert" aria-live="assertive">
-                {error}
-              </div>
-            )}
+
+            {error && <p className="p-3 bg-red-100 text-red-700">{error}</p>}
           </div>
         );
+
       case 2:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">2. Sintomas e Dor</h2>
-            <p className="text-gray-600">Descreva o que está sentindo e onde.</p>
+            <h2 className="text-2xl font-bold">2. Sintomas</h2>
 
-            <div className="space-y-1">
-              <Label htmlFor="mainComplaint">Descreva seu principal incômodo <span className="text-red-500">*</span></Label>
-              <Textarea id="mainComplaint" name="mainComplaint" rows={3} value={formData.mainComplaint} onChange={handleInputChange} required aria-required="true" placeholder="Ex: Dor de dente intensa no lado direito, sensibilidade ao mastigar, etc." />
+            <div>
+              <Label htmlFor="mainComplaint">Queixa Principal *</Label>
+              <Textarea
+                id="mainComplaint"
+                name="mainComplaint"
+                value={formData.mainComplaint}
+                onChange={handleInputChange}
+              />
             </div>
 
             <div>
-              <Label className="mb-3 block font-medium text-gray-700">Região do Incômodo (Selecione uma ou mais):</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Label>Região do Incômodo:</Label>
+              <div className="grid md:grid-cols-2 gap-3">
                 {toothAreas.map((t) => (
-                  <div key={t.id} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={t.id} checked={formData.toothRegion.includes(t.id)} onCheckedChange={() => handleToggle("toothRegion", t.id)} />
-                    <Label htmlFor={t.id} className="cursor-pointer">{t.label}</Label>
+                  <div key={t.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={t.id}
+                      checked={formData.toothRegion.includes(t.id)}
+                      onCheckedChange={() => handleToggle("toothRegion", t.id)}
+                    />
+                    <Label htmlFor={t.id}>{t.label}</Label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="pt-4">
-              <Label className="block font-medium text-gray-700">Intensidade da Dor (0-10): <span className="font-bold text-blue-600 text-xl">{formData.painLevel}</span></Label>
-              <input type="range" min="0" max="10" name="painLevel" value={formData.painLevel} onChange={handleInputChange} className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer range-lg accent-blue-600" aria-valuetext={`Nível de dor: ${formData.painLevel}`} />
+            <div>
+              <Label>Dor (0-10): {formData.painLevel}</Label>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                name="painLevel"
+                value={formData.painLevel}
+                onChange={handleInputChange}
+              />
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="painDuration">Há quanto tempo sente o incômodo?</Label>
-              <Input id="painDuration" name="painDuration" value={formData.painDuration} onChange={handleInputChange} placeholder="Ex: 2 semanas, 3 meses, 1 ano..." />
+            <div>
+              <Label htmlFor="painDuration">Duração</Label>
+              <Input
+                id="painDuration"
+                name="painDuration"
+                value={formData.painDuration}
+                onChange={handleInputChange}
+              />
             </div>
-            
-            {error && step === 2 && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg" role="alert" aria-live="assertive">
-                {error}
-              </div>
-            )}
+
+            {error && <p className="p-3 bg-red-100 text-red-700">{error}</p>}
           </div>
         );
+
       case 3:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">3. Saúde Bucal</h2>
-            <p className="text-gray-600">Detalhes sobre a saúde da sua gengiva e sensibilidade.</p>
+            <h2 className="text-2xl font-bold">3. Saúde Bucal</h2>
 
             <div>
-              <Label className="mb-3 block font-medium text-gray-700">Sensibilidade (Selecione uma ou mais):</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Label>Sensibilidade:</Label>
+              <div className="grid md:grid-cols-2 gap-3">
                 {sensitivityTypes.map((s) => (
-                  <div key={s} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={s} checked={formData.sensitivity.includes(s)} onCheckedChange={() => handleToggle("sensitivity", s)} />
-                    <Label htmlFor={s} className="cursor-pointer">{s}</Label>
+                  <div key={s} className="flex items-center gap-2">
+                    <Checkbox
+                      id={s}
+                      checked={formData.sensitivity.includes(s)}
+                      onCheckedChange={() => handleToggle("sensitivity", s)}
+                    />
+                    <Label htmlFor={s}>{s}</Label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="pt-4 p-4 bg-white rounded-lg border border-gray-200">
-              <Label className="mb-3 block font-medium text-gray-700">Sangramento ao escovar? <span className="text-red-500">*</span></Label>
-              <RadioGroup value={formData.bleeding} onValueChange={(value: "sim" | "nao") => handleRadioChange("bleeding", value)} className="flex space-x-6">
-                <div className="flex items-center space-x-2">
+            <div className="p-4 border rounded">
+              <Label>Sangramento ao escovar? *</Label>
+              <RadioGroup
+                value={formData.bleeding}
+                onValueChange={(v: "sim" | "nao") => handleRadioChange("bleeding", v)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center gap-2">
                   <RadioGroupItem value="sim" id="bleeding_sim" />
                   <Label htmlFor="bleeding_sim">Sim</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+
+                <div className="flex items-center gap-2">
                   <RadioGroupItem value="nao" id="bleeding_nao" />
                   <Label htmlFor="bleeding_nao">Não</Label>
                 </div>
               </RadioGroup>
             </div>
 
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <Label className="mb-3 block font-medium text-gray-700">Percebe retração da gengiva? <span className="text-red-500">*</span></Label>
-              <RadioGroup value={formData.gumRecession} onValueChange={(value: "sim" | "nao") => handleRadioChange("gumRecession", value)} className="flex space-x-6">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="sim" id="recessao_sim" />
-                  <Label htmlFor="recessao_sim">Sim</Label>
+            <div className="p-4 border rounded">
+              <Label>Recessão gengival? *</Label>
+              <RadioGroup
+                value={formData.gumRecession}
+                onValueChange={(v: "sim" | "nao") => handleRadioChange("gumRecession", v)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="sim"
+                    id="gumRecession_sim"
+                  />{" "}
+                  {/* ALTERAÇÃO */}
+                  <Label htmlFor="gumRecession_sim">Sim</Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="nao" id="recessao_nao" />
-                  <Label htmlFor="recessao_nao">Não</Label>
+
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="nao"
+                    id="gumRecession_nao"
+                  />{" "}
+                  {/* ALTERAÇÃO */}
+                  <Label htmlFor="gumRecession_nao">Não</Label>
                 </div>
               </RadioGroup>
             </div>
-            
-            {error && step === 3 && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg" role="alert" aria-live="assertive">
-                {error}
-              </div>
-            )}
+
+            {error && <p className="p-3 bg-red-100 text-red-700">{error}</p>}
           </div>
         );
+
       case 4:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">4. Histórico e Hábitos</h2>
-            <p className="text-gray-600">Informações importantes sobre seu histórico médico e hábitos.</p>
+            <h2 className="text-2xl font-bold">4. Histórico e Hábitos</h2>
 
-            <div className="mb-4">
-              <Label className="mb-3 block font-medium text-gray-700">Hábitos que podem influenciar a saúde bucal:</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Hábitos:</Label>
+              <div className="grid md:grid-cols-2 gap-3">
                 {habitTypes.map((h) => (
-                  <div key={h} className="flex items-center space-x-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                    <Checkbox id={h} checked={formData.habits.includes(h)} onCheckedChange={() => handleToggle("habits", h)} />
-                    <Label htmlFor={h} className="cursor-pointer">{h}</Label>
+                  <div key={h} className="flex items-center gap-2">
+                    <Checkbox
+                      id={h}
+                      checked={formData.habits.includes(h)}
+                      onCheckedChange={() => handleToggle("habits", h)}
+                    />
+                    <Label htmlFor={h}>{h}</Label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="previousTreatments">Já realizou algum tratamento odontológico recente?</Label>
-              <Textarea id="previousTreatments" name="previousTreatments" rows={3} value={formData.previousTreatments} onChange={handleInputChange} placeholder="Ex: canal, restauração, clareamento… (Opcional)" />
+            <div>
+              <Label htmlFor="previousTreatments">Tratamentos recentes</Label>
+              <Textarea
+                id="previousTreatments"
+                name="previousTreatments"
+                value={formData.previousTreatments}
+                onChange={handleInputChange}
+              />
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="medications">Toma alguma medicação atualmente?</Label>
-              <Textarea id="medications" name="medications" rows={3} value={formData.medications} onChange={handleInputChange} placeholder="Liste as medicações (Opcional)" />
+            <div>
+              <Label htmlFor="medications">Medicações</Label>
+              <Textarea
+                id="medications"
+                name="medications"
+                value={formData.medications}
+                onChange={handleInputChange}
+              />
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="additionalInfo">Deseja informar mais alguma coisa ao dentista?</Label>
-              <Textarea id="additionalInfo" name="additionalInfo" rows={4} value={formData.additionalInfo} onChange={handleInputChange} placeholder="Informações extras (Opcional)" />
+            <div>
+              <Label htmlFor="additionalInfo">Informações adicionais</Label>
+              <Textarea
+                id="additionalInfo"
+                name="additionalInfo"
+                value={formData.additionalInfo}
+                onChange={handleInputChange}
+              />
             </div>
-            
-            {error && step === 4 && (
-              <div className="p-3 bg-red-100 text-red-700 rounded-lg" role="alert" aria-live="assertive">
-                {error}
-              </div>
-            )}
+
+            {error && <p className="p-3 bg-red-100 text-red-700">{error}</p>}
           </div>
         );
+
       default:
         return null;
     }
   };
 
-  // --- Renderização Principal ---
+  // --- Render ---
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto">
-          <button
-            onClick={() => setLocation("/")}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" /> Voltar
-          </button>
+      <div className="container mx-auto px-4 max-w-3xl">
 
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Pré-Avaliação Odontológica</h1>
-            <p className="text-gray-600">Preencha para que o dentista possa entender sua queixa e direcionar o atendimento.</p>
-          </div>
-        </div>
+        <button
+          onClick={() => setLocation("/")}
+          className="flex items-center gap-2 text-blue-600 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </button>
 
-        <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-          {/* Indicador de Progresso Aprimorado */}
-          <StepIndicator currentStep={step} />
+        <h1 className="text-3xl font-bold text-center mb-6">Pré-Avaliação Odontológica</h1>
 
-          {submitted && (
-            <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-lg shadow-md" role="alert" aria-live="assertive">
-              Dados enviados via WhatsApp! Entraremos em contato.
-            </div>
-          )}
-
-          {/* Conteúdo da Etapa */}
-          <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-100">
+        <form onSubmit={handleSubmit}>
+          <div className="p-8 bg-white rounded-xl shadow-lg border">
             {renderStep()}
           </div>
 
-          {/* Ações de Navegação */}
-          <div className="flex justify-between gap-4 pt-6">
+          <div className="flex justify-between mt-6">
             {step > 1 ? (
-              <Button type="button" variant="outline" onClick={handleBack} className="flex items-center px-6 py-3 text-lg">
+              <Button type="button" onClick={handleBack} variant="outline">
                 <ArrowLeft className="w-5 h-5 mr-2" /> Anterior
               </Button>
             ) : (
-              <div /> // Espaçador para manter o alinhamento
+              <div />
             )}
 
             {step < 4 ? (
-              <Button type="button" onClick={handleNext} className="flex items-center bg-blue-600 hover:bg-blue-700 px-6 py-3 text-lg shadow-md">
+              <Button type="button" onClick={handleNext} className="bg-blue-600">
                 Próximo <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             ) : (
-              <Button type="submit" className="flex items-center bg-green-600 hover:bg-green-700 px-6 py-3 text-lg shadow-md">
+              <Button type="submit" className="bg-green-600">
                 <Send className="w-5 h-5 mr-2" /> Enviar via WhatsApp
               </Button>
             )}
