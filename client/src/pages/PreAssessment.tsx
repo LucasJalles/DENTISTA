@@ -497,7 +497,7 @@ export default function PreAssessmentDentistaImprovedV3() {
               <div /> // Espaçador para manter o alinhamento
             )}
 
-            {step < 3 ? (
+            {step < 5 ? (
               <Button type="button" onClick={handleNext} className="flex items-center bg-blue-600 hover:bg-blue-700 px-6 py-3 text-lg shadow-md">
                 Próximo <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
