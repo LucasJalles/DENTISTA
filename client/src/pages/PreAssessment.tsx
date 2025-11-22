@@ -173,27 +173,10 @@ export default function PreAssessmentDentistaImprovedV3() {
     }
   };
 
-  const handleNext = () => {
-    setValidationAttempted(true); 
-    if (validateStep(step)) {
-      setStep((prev) => prev + 1);
-      setValidationAttempted(false); 
-      setCurrentValidationError("");
-    }
-  };
-
-  const handleBack = () => {
-    setStep((prev) => prev - 1);
-    setValidationAttempted(false); // Reseta ao voltar
-    setCurrentValidationError("");
-  };
-
   // --- Submissão (WhatsApp) ---
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent | Event) => {
     e.preventDefault();
     setValidationAttempted(true); // Marca que a validação foi tentada
-
-    if (!validateStep(step)) return; // Garante que a última etapa também foi validada
 
     // Prepara o texto para o WhatsApp
     const toothText = formData.toothRegion.length > 0 ? formData.toothRegion.map(id => toothAreas.find(t => t.id === id)?.label || id).join(", ") : "Não informado";
@@ -231,6 +214,26 @@ export default function PreAssessmentDentistaImprovedV3() {
       setSubmitted(false);
       setLocation("/");
     }, 3000);
+  };
+
+  const handleNext = () => {
+    setValidationAttempted(true); 
+    if (validateStep(step)) {
+      if (step < 4) {
+        setStep((prev) => prev + 1);
+      } else {
+        // Se for a última etapa (4), chama a submissão
+        handleSubmit(new Event('submit'));
+      }
+      setValidationAttempted(false); 
+      setCurrentValidationError("");
+    }
+  };
+
+  const handleBack = () => {
+    setStep((prev) => prev - 1);
+    setValidationAttempted(false); // Reseta ao voltar
+    setCurrentValidationError("");
   };
 
   // --- Componente de Indicador de Etapa ---
@@ -284,7 +287,6 @@ export default function PreAssessmentDentistaImprovedV3() {
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-800">1. Seus Dados</h2>
             <p className="text-gray-600">Precisamos de suas informações de contato para dar seguimento à avaliação.</p>
             
             <div className="grid md:grid-cols-2 gap-6">
@@ -497,15 +499,17 @@ export default function PreAssessmentDentistaImprovedV3() {
               <div /> // Espaçador para manter o alinhamento
             )}
 
-            {step < 4 ? (
-              <Button type="button" onClick={handleNext} className="flex items-center bg-blue-600 hover:bg-blue-700 px-6 py-3 text-lg shadow-md">
-                Próximo <ArrowRight className="w-5 h-5 ml-2" />
+            <Button type="button" onClick={handleNext} className={`flex items-center px-6 py-3 text-lg shadow-md ${step < 4 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}>
+                {step < 4 ? (
+                  <>
+                    Próximo <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5 mr-2" /> Enviar via WhatsApp
+                  </>
+                )}
               </Button>
-            ) : (
-              <Button type="submit" className="flex items-center bg-green-600 hover:bg-green-700 px-6 py-3 text-lg shadow-md">
-                <Send className="w-5 h-5 mr-2" /> Enviar via WhatsApp
-              </Button>
-            )}
           </div>
         </form>
       </div>
